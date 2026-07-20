@@ -1,0 +1,17 @@
+{
+  "name": "wigo-ocr-worker",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260714.1",
+    "typescript": "~5.6.3",
+    "wrangler": "^4.112.0"
+  }
+}

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#3b6fd4"/>
+  <text x="256" y="300" font-size="240" text-anchor="middle" fill="#fff" font-family="serif">学</text>
+  <rect x="120" y="380" width="272" height="28" rx="14" fill="#ffffff55"/>
+  <rect x="120" y="380" width="180" height="28" rx="14" fill="#fff"/>
+</svg>

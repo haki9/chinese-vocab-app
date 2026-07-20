@@ -1,0 +1,32 @@
+{
+  "name": "wigo-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.3",
+    "dexie": "^4.0.11",
+    "dexie-react-hooks": "^1.1.7",
+    "hanzi-writer": "^3.7.2",
+    "nanoid": "^5.1.5",
+    "pinyin-pro": "^3.26.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.0",
+    "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.6.3",
+    "vite": "^6.2.0",
+    "vite-plugin-pwa": "^0.21.1"
+  }
+}
