@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Word } from '../../db/types';
+import type { Lang } from '../../lib/lang';
 import { speak, ttsAvailable } from '../../lib/tts';
 
 interface Props {
   word: Word;
   pool: Word[]; // để lấy đáp án nhiễu
+  lang?: Lang;
   streak: number;
   onReport: (correct: boolean) => void;
   onNext: () => void;
@@ -19,7 +21,7 @@ function shuffle<T>(xs: T[]): T[] {
   return a;
 }
 
-export default function QuizQuestion({ word, pool, streak, onReport, onNext }: Props) {
+export default function QuizQuestion({ word, pool, lang = 'zh', streak, onReport, onNext }: Props) {
   // Hướng: Hán→Việt hoặc Việt→Hán
   const toViet = useMemo(() => Math.random() < 0.65, [word.id]);
   const options = useMemo(() => {
@@ -32,8 +34,8 @@ export default function QuizQuestion({ word, pool, streak, onReport, onNext }: P
 
   useEffect(() => { setPicked(null); }, [word.id]);
   useEffect(() => {
-    if (toViet) speak(word.hanzi);
-  }, [word.id, toViet]);
+    if (toViet) speak(word.hanzi, undefined, lang);
+  }, [word.id, toViet, lang]);
 
   const pick = (id: string) => {
     if (picked) return;
@@ -51,8 +53,8 @@ export default function QuizQuestion({ word, pool, streak, onReport, onNext }: P
         {toViet ? (
           <>
             <div className="big-hanzi">{word.hanzi}</div>
-            {ttsAvailable() ? (
-              <button className="tts-chip" onClick={() => speak(word.hanzi)}>🔊 {word.pinyin}</button>
+            {ttsAvailable(lang) ? (
+              <button className="tts-chip" onClick={() => speak(word.hanzi, undefined, lang)}>🔊 {word.pinyin}</button>
             ) : (
               <span className="tts-chip" style={{ opacity: 0.8 }}>{word.pinyin}</span>
             )}

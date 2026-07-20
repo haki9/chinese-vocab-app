@@ -9,6 +9,7 @@ import WritingQuestion from '../components/practice/WritingQuestion';
 import CelebrateModal from '../components/CelebrateModal';
 import { db } from '../db/db';
 import type { PracticeMode, Word } from '../db/types';
+import type { Lang } from '../lib/lang';
 import {
   confettiBig, confettiBurst, playCorrect, playLevelUp, playSessionDone, playWrong,
 } from '../lib/feedback';
@@ -44,6 +45,7 @@ export default function Practice() {
   const navigate = useNavigate();
 
   const [words, setWords] = useState<Word[] | null>(null);
+  const [lang, setLang] = useState<Lang>('zh');
   const [queue, setQueue] = useState<Question[]>([]);
   const [idx, setIdx] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -59,6 +61,8 @@ export default function Practice() {
   useEffect(() => {
     (async () => {
       if (!id || !mode) return;
+      const lesson = await db.lessons.get(id);
+      setLang(lesson?.lang ?? 'zh');
       let ws = await lessonWords(id);
       if (!ws.length) { navigate(`/lesson/${id}`, { replace: true }); return; }
 
@@ -190,23 +194,23 @@ export default function Practice() {
         <span style={{ fontWeight: 800, color: 'var(--orange-deep)' }}>🔥 {streak}</span>
       </div>
 
-      {mode === 'vocab' && <VocabBrowser words={words} onFinished={finishSession} />}
+      {mode === 'vocab' && <VocabBrowser words={words} lang={lang} onFinished={finishSession} />}
 
       {mode === 'match' && (
-        <MatchBoard words={words} onWordResult={reportMatchWord} onFinished={finishSession} />
+        <MatchBoard words={words} lang={lang} onWordResult={reportMatchWord} onFinished={finishSession} />
       )}
 
       {q && q.mode === 'quiz' && (
-        <QuizQuestion word={q.word} pool={words} streak={streak} onReport={report} onNext={next} />
+        <QuizQuestion word={q.word} pool={words} lang={lang} streak={streak} onReport={report} onNext={next} />
       )}
       {q && q.mode === 'typing' && (
-        <TypingQuestion word={q.word} streak={streak} onReport={report} onNext={next} />
+        <TypingQuestion word={q.word} lang={lang} streak={streak} onReport={report} onNext={next} />
       )}
       {q && q.mode === 'flashcard' && (
-        <FlashcardQuestion word={q.word} onReport={report} onNext={next} />
+        <FlashcardQuestion word={q.word} lang={lang} onReport={report} onNext={next} />
       )}
       {q && q.mode === 'writing' && (
-        <WritingQuestion word={q.word} onReport={report} onNext={next} />
+        <WritingQuestion word={q.word} lang={lang} onReport={report} onNext={next} />
       )}
     </>
   );

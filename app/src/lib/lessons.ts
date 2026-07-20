@@ -1,22 +1,27 @@
 import { nanoid } from 'nanoid';
 import { db } from '../db/db';
 import type { Lesson, OcrWord, Word } from '../db/types';
+import { detectPastedLang, type Lang } from './lang';
 import { ensureSkillStates } from './srs';
 
-/** Parse văn bản dán vào: mỗi dòng `汉字 pinyin nghĩa` (pinyin có thể thiếu → tự sinh gợi ý) */
-export async function parsePastedText(text: string): Promise<OcrWord[]> {
-  // pinyin-pro nặng (~500KB) — chỉ tải khi thực sự dán văn bản
-  const { pinyin: toPinyin } = await import('pinyin-pro');
+/** Chữ Hán/Kanji đầu dòng, hoặc kanji+kana (tiếng Nhật) */
+const LEADING_CJK = /^([一-鿿㐀-䶿぀-ヿ，。]+)[\s,;:\-–—\t]*(.*)$/;
+
+/** Parse văn bản dán vào: mỗi dòng `chữ  cách đọc  nghĩa` (cách đọc có thể thiếu → tự sinh gợi ý nếu là tiếng Trung) */
+export async function parsePastedText(text: string): Promise<{ words: OcrWord[]; lang: Lang }> {
+  const lang = detectPastedLang(text);
+  // pinyin-pro nặng (~500KB) — chỉ tải khi thực sự dán văn bản tiếng Trung
+  const toPinyin = lang === 'zh' ? (await import('pinyin-pro')).pinyin : null;
   const out: OcrWord[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) continue;
-    // tách phần chữ Hán đầu dòng
-    const m = line.match(/^([一-鿿㐀-䶿，。]+)[\s,;:\-–—\t]*(.*)$/);
+    // tách phần chữ đầu dòng
+    const m = line.match(LEADING_CJK);
     if (!m) continue;
     const hanzi = m[1].replace(/[，。]/g, '');
     let rest = m[2].trim();
-    // pinyin = phần chữ latin có dấu đứng trước, nghĩa = phần còn lại
+    // pinyin/romaji = phần chữ latin có dấu đứng trước, nghĩa = phần còn lại
     let pinyin = '';
     let meaning = rest;
     const pm = rest.match(/^([a-zA-ZüÜāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙ'\s]+?)[\s\-–—:,;\t]+(.+)$/);
@@ -24,12 +29,12 @@ export async function parsePastedText(text: string): Promise<OcrWord[]> {
       pinyin = pm[1].trim();
       meaning = pm[2].trim();
     }
-    if (!pinyin && hanzi) {
-      pinyin = toPinyin(hanzi); // gợi ý tự động — người dùng duyệt lại
+    if (!pinyin && hanzi && toPinyin) {
+      pinyin = toPinyin(hanzi); // gợi ý tự động (chỉ tiếng Trung) — người dùng duyệt lại
     }
     out.push({ hanzi, pinyin, meaning, confidence: pinyin && meaning ? 1 : 0.5 });
   }
-  return out;
+  return { words: out, lang };
 }
 
 /** Tạo bài học mới từ danh sách từ đã duyệt */
@@ -37,10 +42,11 @@ export async function createLesson(
   title: string,
   words: { hanzi: string; pinyin: string; meaning: string }[],
   source: Lesson['source'],
+  lang: Lang = 'zh',
 ): Promise<string> {
   const now = Date.now();
   const lessonId = nanoid();
-  const lesson: Lesson = { id: lessonId, title, source, createdAt: now, updatedAt: now };
+  const lesson: Lesson = { id: lessonId, title, source, lang, createdAt: now, updatedAt: now };
   const rows: Word[] = words
     .filter((w) => w.hanzi.trim())
     .map((w, i) => ({

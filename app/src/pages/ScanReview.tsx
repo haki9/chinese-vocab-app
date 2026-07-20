@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkBadges } from '../lib/gamification';
+import { LANG_FLAG, LANG_NAME } from '../lib/lang';
 import { createLesson, nextLessonNumber } from '../lib/lessons';
 import { CONFIDENCE_THRESHOLD, useDraft } from '../store/draft';
 
 export default function ScanReview() {
   const navigate = useNavigate();
-  const { words, pages, source, updateWord, removeWord, addWord, clear } = useDraft();
+  const { words, pages, source, lang, setLang, updateWord, removeWord, addWord, clear } = useDraft();
   const [lessonNo, setLessonNo] = useState(0);
   const [zoom, setZoom] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -27,7 +28,7 @@ export default function ScanReview() {
     setSaving(true);
     const firstHanzi = validWords[0].hanzi;
     const title = `Bài ${lessonNo} · ${firstHanzi.length <= 8 ? firstHanzi : firstHanzi.slice(0, 8) + '…'}`;
-    const id = await createLesson(title, validWords, source);
+    const id = await createLesson(title, validWords, source, lang);
     await checkBadges(); // "Bài đầu tiên"
     savedRef.current = true;
     navigate(`/lesson/${id}`, { replace: true });
@@ -51,6 +52,13 @@ export default function ScanReview() {
           }}>{lowCount} cần xem</span>
         )}
       </header>
+
+      <div className="px mt-3">
+        <button className="lang-chip" onClick={() => setLang(lang === 'zh' ? 'ja' : 'zh')}
+          title="Chạm để đổi ngôn ngữ nếu AI nhận nhầm">
+          {LANG_FLAG[lang]} {LANG_NAME[lang]} <span className="muted small">· chạm để đổi</span>
+        </button>
+      </div>
 
       <div className="px mt-4 stack gap-3" style={{ paddingBottom: 110 }}>
         {pages.length > 0 && (

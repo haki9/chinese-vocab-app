@@ -1,24 +1,30 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../db/db';
+import type { Lang } from '../lib/lang';
 import { lessonWords } from '../lib/lessons';
 import { lessonMastery } from '../lib/srs';
 import type { PracticeMode, Skill } from '../db/types';
 
-const MODES: { mode: PracticeMode; ico: string; t: string; s: string; skill: Skill | null }[] = [
-  { mode: 'vocab', ico: '📚', t: 'Từ vựng', s: 'Xem & nghe', skill: null },
-  { mode: 'flashcard', ico: '🃏', t: 'Flashcard', s: 'Lật thẻ ghi nhớ', skill: 'recognize' },
-  { mode: 'quiz', ico: '✅', t: 'Trắc nghiệm', s: 'Hán ↔ Việt', skill: 'recognize' },
-  { mode: 'typing', ico: '⌨️', t: 'Gõ pinyin', s: 'Không cần dấu thanh', skill: 'pinyin' },
-  { mode: 'match', ico: '🔗', t: 'Nối từ', s: 'Ghép Hán — nghĩa', skill: 'recognize' },
-  { mode: 'writing', ico: '✍️', t: 'Tập viết', s: 'Thứ tự nét chữ', skill: 'write' },
-];
+function buildModes(lang: Lang): { mode: PracticeMode; ico: string; t: string; s: string; skill: Skill | null }[] {
+  const chWord = lang === 'ja' ? 'Kanji' : 'Hán';
+  return [
+    { mode: 'vocab', ico: '📚', t: 'Từ vựng', s: 'Xem & nghe', skill: null },
+    { mode: 'flashcard', ico: '🃏', t: 'Flashcard', s: 'Lật thẻ ghi nhớ', skill: 'recognize' },
+    { mode: 'quiz', ico: '✅', t: 'Trắc nghiệm', s: `${chWord} ↔ Việt`, skill: 'recognize' },
+    { mode: 'typing', ico: '⌨️', t: lang === 'ja' ? 'Gõ romaji' : 'Gõ pinyin', s: lang === 'ja' ? 'Theo cách đọc' : 'Không cần dấu thanh', skill: 'pinyin' },
+    { mode: 'match', ico: '🔗', t: 'Nối từ', s: `Ghép ${chWord} — nghĩa`, skill: 'recognize' },
+    { mode: 'writing', ico: '✍️', t: 'Tập viết', s: 'Thứ tự nét chữ', skill: 'write' },
+  ];
+}
 
-const SKILL_LABEL: Record<Skill, string> = {
-  recognize: 'Nhận mặt chữ',
-  pinyin: 'Gõ pinyin',
-  write: 'Tập viết',
-};
+function skillLabel(lang: Lang): Record<Skill, string> {
+  return {
+    recognize: 'Nhận mặt chữ',
+    pinyin: lang === 'ja' ? 'Gõ romaji' : 'Gõ pinyin',
+    write: 'Tập viết',
+  };
+}
 
 export default function Lesson() {
   const { id } = useParams<{ id: string }>();
@@ -35,6 +41,9 @@ export default function Lesson() {
 
   if (!data) return null;
   const { lesson, words, mastery } = data;
+  const lang: Lang = lesson.lang ?? 'zh';
+  const MODES = buildModes(lang);
+  const SKILL_LABEL = skillLabel(lang);
   const pinyinTitle = words.slice(0, 5).map((w) => w.pinyin).join(' ');
   const [numPart, hanziPart] = lesson.title.includes('·')
     ? [lesson.title.split('·')[0].trim(), lesson.title.split('·').slice(1).join('·').trim()]

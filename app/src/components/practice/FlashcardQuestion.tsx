@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import type { Word } from '../../db/types';
+import type { Lang } from '../../lib/lang';
 import { speak, ttsAvailable } from '../../lib/tts';
 
 interface Props {
   word: Word;
+  lang?: Lang;
   onReport: (correct: boolean) => void;
   onNext: () => void;
 }
 
-export default function FlashcardQuestion({ word, onReport, onNext }: Props) {
+export default function FlashcardQuestion({ word, lang = 'zh', onReport, onNext }: Props) {
   const [flipped, setFlipped] = useState(false);
   useEffect(() => { setFlipped(false); }, [word.id]);
 
@@ -25,8 +27,8 @@ export default function FlashcardQuestion({ word, onReport, onNext }: Props) {
         <div className="inner">
           <div className="face">
             <div className="big-hanzi">{word.hanzi}</div>
-            {ttsAvailable() && (
-              <span className="tts-chip" onClick={(e) => { e.stopPropagation(); speak(word.hanzi); }}>🔊 Nghe</span>
+            {ttsAvailable(lang) && (
+              <span className="tts-chip" onClick={(e) => { e.stopPropagation(); speak(word.hanzi, undefined, lang); }}>🔊 Nghe</span>
             )}
           </div>
           <div className="face back">

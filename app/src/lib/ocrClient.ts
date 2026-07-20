@@ -1,4 +1,5 @@
 import type { OcrWord } from '../db/types';
+import { HANGUL, type Lang } from './lang';
 
 /** URL worker — cấu hình khi deploy (VITE_OCR_URL trong .env.production) */
 export const OCR_URL: string = import.meta.env.VITE_OCR_URL ?? 'http://localhost:8787/api/ocr';
@@ -6,25 +7,24 @@ export const TURNSTILE_SITE_KEY: string = import.meta.env.VITE_TURNSTILE_SITE_KE
 
 export class OcrError extends Error {
   constructor(
-    public kind: 'network' | 'quota' | 'disabled' | 'server' | 'empty' | 'not_chinese',
+    public kind: 'network' | 'quota' | 'disabled' | 'server' | 'empty' | 'not_supported',
     message: string,
   ) {
     super(message);
   }
 }
 
-/** Nhận diện ký tự Nhật/Hàn trong kết quả — lớp kiểm tra dự phòng, độc lập với cờ is_chinese của AI */
-const HIRAGANA_KATAKANA = /[぀-ヿ]/;
-const HANGUL = /[가-힣]/;
-
-function detectForeignScript(words: OcrWord[]): string | null {
+/** Nhận diện Hangul — lớp kiểm tra dự phòng, độc lập với phân loại ngôn ngữ của AI */
+function detectUnsupportedScript(words: OcrWord[]): string | null {
   const combined = words.map((w) => w.hanzi + w.meaning).join('');
-  if (HIRAGANA_KATAKANA.test(combined)) return 'tiếng Nhật (có chữ hiragana/katakana)';
   if (HANGUL.test(combined)) return 'tiếng Hàn (chữ Hangul)';
   return null;
 }
 
-export async function requestOcr(imagesBase64: string[], turnstileToken: string): Promise<OcrWord[]> {
+export async function requestOcr(
+  imagesBase64: string[],
+  turnstileToken: string,
+): Promise<{ words: OcrWord[]; lang: Lang }> {
   let res: Response;
   try {
     res = await fetch(OCR_URL, {
@@ -44,22 +44,22 @@ export async function requestOcr(imagesBase64: string[], turnstileToken: string)
   if (!res.ok) {
     throw new OcrError('server', 'Máy chủ gặp lỗi. Thử lại sau ít phút.');
   }
-  const data = (await res.json()) as { words: OcrWord[]; isChinese?: boolean; note?: string };
+  const data = (await res.json()) as { words: OcrWord[]; language?: Lang | 'other'; note?: string };
 
-  if (data.isChinese === false) {
+  if (data.language === 'other') {
     throw new OcrError(
-      'not_chinese',
+      'not_supported',
       data.note
-        ? `Ảnh này có vẻ không phải từ vựng tiếng Trung — ${data.note}. Hãy chụp trang vở ghi từ vựng tiếng Trung (chữ Hán) nhé.`
-        : 'Ảnh này có vẻ không phải nội dung tiếng Trung. Hãy chụp trang vở ghi từ vựng tiếng Trung (chữ Hán) nhé.',
+        ? `Ảnh này có vẻ không phải từ vựng tiếng Trung/tiếng Nhật — ${data.note}. Hãy chụp trang vở ghi từ vựng tiếng Trung hoặc tiếng Nhật nhé.`
+        : 'Ảnh này có vẻ không phải nội dung tiếng Trung/tiếng Nhật. Hãy chụp trang vở ghi từ vựng tiếng Trung hoặc tiếng Nhật nhé.',
     );
   }
   if (!data.words?.length) {
     throw new OcrError('empty', 'Không đọc được từ nào — ảnh có thể bị mờ hoặc thiếu sáng. Chụp lại gần hơn, đủ sáng nhé.');
   }
-  const foreign = detectForeignScript(data.words);
-  if (foreign) {
-    throw new OcrError('not_chinese', `Ảnh này có vẻ là ${foreign}, không phải tiếng Trung. Hãy chụp trang vở ghi từ vựng tiếng Trung (chữ Hán) nhé.`);
+  const unsupported = detectUnsupportedScript(data.words);
+  if (unsupported) {
+    throw new OcrError('not_supported', `Ảnh này có vẻ là ${unsupported}, chưa được hỗ trợ. Hãy chụp trang vở ghi từ vựng tiếng Trung hoặc tiếng Nhật nhé.`);
   }
-  return data.words;
+  return { words: data.words, lang: data.language === 'ja' ? 'ja' : 'zh' };
 }

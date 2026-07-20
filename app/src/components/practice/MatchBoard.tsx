@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { Word } from '../../db/types';
 import { playCorrect, playWrong } from '../../lib/feedback';
+import type { Lang } from '../../lib/lang';
 import { speak } from '../../lib/tts';
 
 interface Props {
   words: Word[];
+  lang?: Lang;
   onWordResult: (wordId: string, correct: boolean) => void;
   onFinished: () => void;
 }
@@ -20,7 +22,7 @@ function shuffle<T>(xs: T[]): T[] {
 
 const ROUND_SIZE = 5;
 
-export default function MatchBoard({ words, onWordResult, onFinished }: Props) {
+export default function MatchBoard({ words, lang = 'zh', onWordResult, onFinished }: Props) {
   const rounds = useMemo(() => {
     const shuffled = shuffle(words);
     const out: Word[][] = [];
@@ -58,7 +60,7 @@ export default function MatchBoard({ words, onWordResult, onFinished }: Props) {
     if (selLeft === null || selRight === null) return;
     if (selLeft === selRight) {
       playCorrect();
-      speak(current.find((w) => w.id === selLeft)?.hanzi ?? '');
+      speak(current.find((w) => w.id === selLeft)?.hanzi ?? '', undefined, lang);
       setDone((d) => new Set(d).add(selLeft));
     } else {
       playWrong();

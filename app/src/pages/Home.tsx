@@ -77,7 +77,7 @@ export default function Home() {
           <span className="muted" style={{ fontWeight: 700 }}>{greeting()}</span>
           <span className="pill">🔥 {streak} ngày</span>
         </div>
-        <h1 className="h1 mt-2">Học từ vựng tiếng Trung</h1>
+        <h1 className="h1 mt-2">Học từ vựng Trung · Nhật</h1>
         <div className="row gap-2 mt-3">
           <span className="pill">⭐ Cấp {level.level} · {profile.xp.toLocaleString('vi-VN')} XP</span>
           <span className="pill">📘 {known} từ đã thuộc</span>
@@ -137,7 +137,7 @@ export default function Home() {
           <span style={{ fontSize: 26 }}>📷</span>
           <span>
             <div className="t">Chụp ảnh vở → tạo bài mới</div>
-            <div className="s">AI tự nhận chữ Hán, pinyin, nghĩa</div>
+            <div className="s">AI tự nhận chữ, cách đọc, nghĩa — tiếng Trung hoặc Nhật</div>
           </span>
         </button>
 

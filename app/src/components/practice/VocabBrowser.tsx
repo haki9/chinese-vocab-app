@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import type { Word } from '../../db/types';
+import { LANG_NAME, type Lang } from '../../lib/lang';
 import { speak, ttsAvailable } from '../../lib/tts';
 
 interface Props {
   words: Word[];
+  lang?: Lang;
   onFinished: () => void;
 }
 
-export default function VocabBrowser({ words, onFinished }: Props) {
+export default function VocabBrowser({ words, lang = 'zh', onFinished }: Props) {
   const [idx, setIdx] = useState(0);
   const w = words[idx];
   if (!w) return null;
-  const tts = ttsAvailable();
+  const tts = ttsAvailable(lang);
 
   return (
     <div className="px stack gap-4 grow" style={{ paddingTop: 8 }}>
@@ -22,9 +24,9 @@ export default function VocabBrowser({ words, onFinished }: Props) {
         <div className="h2" style={{ color: 'var(--primary)' }}>{w.pinyin}</div>
         <div className="h3">{w.meaning}</div>
         {tts ? (
-          <button className="tts-chip" onClick={() => speak(w.hanzi)}>🔊 Phát âm</button>
+          <button className="tts-chip" onClick={() => speak(w.hanzi, undefined, lang)}>🔊 Phát âm</button>
         ) : (
-          <span className="muted small">Thiết bị không hỗ trợ phát âm tiếng Trung</span>
+          <span className="muted small">Thiết bị không hỗ trợ phát âm {LANG_NAME[lang].toLowerCase()}</span>
         )}
       </div>
 

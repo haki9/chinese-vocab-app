@@ -38,8 +38,8 @@ export default function Scan() {
     setBusy(true);
     setError('');
     try {
-      const words = await requestOcr(pages, token || 'dev');
-      setDraft(words, 'ocr', pages);
+      const { words, lang } = await requestOcr(pages, token || 'dev');
+      setDraft(words, 'ocr', lang, pages);
       navigate('/scan/review');
     } catch (e) {
       setError(e instanceof OcrError ? e.message : 'Có lỗi xảy ra, thử lại nhé.');
@@ -49,9 +49,9 @@ export default function Scan() {
   }, [pages, busy, token, setDraft, navigate]);
 
   const submitPaste = async () => {
-    const words = await parsePastedText(pasteText);
+    const { words, lang } = await parsePastedText(pasteText);
     if (!words.length) return;
-    setDraft(words, 'paste');
+    setDraft(words, 'paste', lang);
     navigate('/scan/review');
   };
 

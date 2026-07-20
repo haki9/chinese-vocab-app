@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import type HanziWriterType from 'hanzi-writer';
 import type { Word } from '../../db/types';
+import type { Lang } from '../../lib/lang';
 import { speak } from '../../lib/tts';
 
 interface Props {
   word: Word;
+  lang?: Lang;
   onReport: (correct: boolean) => void;
   onNext: () => void;
 }
 
-/** Tập viết từng chữ trong từ theo thứ tự nét (hanzi-writer quiz) */
-export default function WritingQuestion({ word, onReport, onNext }: Props) {
+/** Tập viết từng chữ Hán/Kanji trong từ theo thứ tự nét (hanzi-writer quiz) — chữ kana không có dữ liệu nét nên bị lọc khỏi `chars` */
+export default function WritingQuestion({ word, lang = 'zh', onReport, onNext }: Props) {
   const boxRef = useRef<HTMLDivElement>(null);
   const writerRef = useRef<ReturnType<typeof HanziWriterType.create> | null>(null);
   const [charIdx, setCharIdx] = useState(0);
@@ -51,7 +53,7 @@ export default function WritingQuestion({ word, onReport, onNext }: Props) {
             const ok = total <= chars.length; // cho phép ~1 nét sai mỗi chữ
             setFinished(ok);
             onReport(ok);
-            speak(word.hanzi);
+            speak(word.hanzi, undefined, lang);
           }
         },
       });
@@ -63,10 +65,16 @@ export default function WritingQuestion({ word, onReport, onNext }: Props) {
   }, [charIdx, word.id, finished !== null]);
 
   if (!chars.length || loadError) {
+    const noKanjiAtAll = !chars.length && !loadError;
     return (
       <div className="px stack gap-4 grow center" style={{ paddingTop: 24 }}>
         <div style={{ fontSize: 40 }}>✍️</div>
-        <div className="muted">Chưa có dữ liệu nét cho chữ “{chars[charIdx] ?? word.hanzi}”.<br />Bỏ qua từ này nhé.</div>
+        <div className="muted">
+          {noKanjiAtAll
+            ? <>Từ “{word.hanzi}” không có chữ Hán/Kanji để tập viết (chỉ có kana).</>
+            : <>Chưa có dữ liệu nét cho chữ “{chars[charIdx] ?? word.hanzi}”.</>}
+          <br />Bỏ qua từ này nhé.
+        </div>
         <button className="btn btn-primary" onClick={onNext}>Tiếp →</button>
       </div>
     );

@@ -22,6 +22,8 @@ export interface Lesson {
   id: string;
   title: string;
   source: 'ocr' | 'paste' | 'manual';
+  /** 'zh' (tiếng Trung) | 'ja' (tiếng Nhật) — bài tạo trước khi có tiếng Nhật sẽ không có field này, coi như 'zh' */
+  lang?: 'zh' | 'ja';
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
@@ -31,6 +33,7 @@ export interface Word {
   id: string;
   lessonId: string;
   hanzi: string;
+  /** Với bài tiếng Nhật: romaji (cách đọc), không phải hiragana/katakana */
   pinyin: string;
   meaning: string;
   order: number;
