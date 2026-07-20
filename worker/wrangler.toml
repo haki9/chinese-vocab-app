@@ -7,11 +7,11 @@ compatibility_flags = ["nodejs_compat"]
 # rồi điền id vào đây
 [[kv_namespaces]]
 binding = "RATE_KV"
-id = "REPLACE_WITH_KV_ID"
+id = "aabd0cd52ed84499946d79210faa47e9"
 
 [vars]
 # Origin của app (GitHub Pages). Dev để trống = cho phép localhost.
-ALLOWED_ORIGIN = ""
+ALLOWED_ORIGIN = "https://haki9.github.io"
 IP_DAILY_LIMIT = "10"
 GLOBAL_DAILY_LIMIT = "300"
 OCR_DISABLED = "false"
