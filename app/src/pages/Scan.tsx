@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Turnstile from '../components/Turnstile';
 import { compressImage } from '../lib/image';
@@ -12,89 +12,19 @@ export default function Scan() {
   const navigate = useNavigate();
   const setDraft = useDraft((s) => s.setDraft);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const trackRef = useRef<MediaStreamTrack | null>(null);
-  // Không có `capture` — mở bộ chọn ảnh gốc của máy (Thư viện ảnh / Files), không ép mở camera.
-  // Trên nhiều điện thoại, input có `capture` sẽ luôn mở thẳng app camera và bỏ qua thư viện ảnh.
+  // Chụp ảnh mới — mở app camera gốc của máy (không mô phỏng viewfinder trong trang).
+  const cameraRef = useRef<HTMLInputElement>(null);
+  // Chọn ảnh có sẵn — mở Thư viện ảnh/Gallery, không ép mở camera.
   const galleryRef = useRef<HTMLInputElement>(null);
 
-  const [cameraOn, setCameraOn] = useState(false);
-  const [cameraError, setCameraError] = useState('');
-  const [torch, setTorch] = useState(false);
   const [pages, setPages] = useState<string[]>([]);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [token, setToken] = useState('');
-  const [cameraAttempt, setCameraAttempt] = useState(0);
 
-  // Bật camera — chạy lại mỗi khi bấm "Thử lại" (cameraAttempt tăng)
-  useEffect(() => {
-    let cancelled = false;
-    setCameraError('');
-    (async () => {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraOn(false);
-        setCameraError('Trình duyệt này không hỗ trợ mở camera trực tiếp. Dùng "Thư viện ảnh" để chọn ảnh đã chụp sẵn.');
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1920 } },
-          audio: false,
-        });
-        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
-        streamRef.current = stream;
-        trackRef.current = stream.getVideoTracks()[0] ?? null;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play().catch(() => {});
-        }
-        setCameraOn(true);
-      } catch (err) {
-        if (cancelled) return;
-        setCameraOn(false);
-        const name = err instanceof DOMException ? err.name : '';
-        if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
-          setCameraError('Bạn chưa cho phép quyền Camera. Mở cài đặt trình duyệt → quyền của trang này → bật Camera, rồi bấm "Thử lại". Hoặc dùng "Thư viện ảnh" bên dưới.');
-        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
-          setCameraError('Không tìm thấy camera trên thiết bị này. Dùng "Thư viện ảnh" để chọn ảnh đã chụp sẵn.');
-        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
-          setCameraError('Camera đang được ứng dụng khác dùng. Đóng ứng dụng đó rồi bấm "Thử lại", hoặc dùng "Thư viện ảnh".');
-        } else {
-          setCameraError('Không mở được camera trên thiết bị/trình duyệt này. Dùng "Thư viện ảnh" để chọn ảnh đã chụp sẵn.');
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-    };
-  }, [cameraAttempt]);
-
-  const toggleTorch = async () => {
-    const track = trackRef.current;
-    if (!track) return;
-    try {
-      // torch không có trong TS lib — ép kiểu
-      await track.applyConstraints({ advanced: [{ torch: !torch } as MediaTrackConstraintSet] });
-      setTorch(!torch);
-    } catch { /* thiết bị không hỗ trợ đèn */ }
-  };
-
-  const capture = async () => {
-    const video = videoRef.current;
-    if (!video || !cameraOn || pages.length >= MAX_PAGES) return;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d')!.drawImage(video, 0, 0);
-    const blob = await new Promise<Blob>((res) => canvas.toBlob((b) => res(b!), 'image/jpeg', 0.92));
-    const b64 = await compressImage(blob);
-    setPages((p) => [...p, b64]);
-  };
+  const atMax = pages.length >= MAX_PAGES;
 
   const onFiles = async (files: FileList | null) => {
     if (!files) return;
@@ -141,38 +71,6 @@ export default function Scan() {
       </header>
 
       <div className="px mt-4 stack gap-4">
-        <div className="camera-frame">
-          <div className="camera-hint">Căn trang vở vào khung · đủ sáng, không bóng</div>
-          <div className="camera-inner">
-            {cameraOn ? (
-              <video ref={videoRef} playsInline muted />
-            ) : (
-              <div className="center stack gap-3" style={{ color: '#c3cbdc', padding: '0 20px', alignItems: 'center' }}>
-                <span style={{ fontSize: 30 }}>📵</span>
-                <span style={{ fontSize: 14, lineHeight: 1.6, fontWeight: 600 }}>
-                  {cameraError || 'Đang mở camera…'}
-                </span>
-                {cameraError && (
-                  <button className="btn btn-white" style={{ padding: '9px 18px', marginTop: 4 }}
-                    onClick={() => setCameraAttempt((n) => n + 1)}>
-                    ↻ Thử lại
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-          <div style={{
-            position: 'absolute', bottom: 26, left: 0, right: 0,
-            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 44, zIndex: 3,
-          }}>
-            <button className="icon-btn" style={{ fontSize: 24 }} onClick={() => galleryRef.current?.click()}>🖼️</button>
-            {cameraOn && <button className="shutter" onClick={capture}>📷</button>}
-            {cameraOn && (
-              <button className="icon-btn" style={{ fontSize: 24, opacity: torch ? 1 : 0.7 }} onClick={toggleTorch}>⚡</button>
-            )}
-          </div>
-        </div>
-
         {pages.length > 0 && (
           <div className="card row gap-3" style={{ padding: '12px 14px' }}>
             <div className="row gap-2 grow" style={{ flexWrap: 'wrap' }}>
@@ -199,7 +97,12 @@ export default function Scan() {
         )}
 
         <div className="scan-actions">
-          <button className="scan-action" onClick={() => galleryRef.current?.click()}>
+          <button className="scan-action" style={{ opacity: atMax ? 0.5 : 1 }} disabled={atMax}
+            onClick={() => cameraRef.current?.click()}>
+            <span className="ico">📷</span>Chụp ảnh
+          </button>
+          <button className="scan-action" style={{ opacity: atMax ? 0.5 : 1 }} disabled={atMax}
+            onClick={() => galleryRef.current?.click()}>
             <span className="ico">🖼️</span>Thư viện ảnh
           </button>
           <button className="scan-action" onClick={() => setPasteOpen(true)}>
@@ -212,12 +115,14 @@ export default function Scan() {
 
         <div className="tip">
           <span>💡</span>
-          <span>Có thể chụp nhiều trang liên tiếp — hệ thống sẽ gộp vào một bài.</span>
+          <span>Có thể chụp hoặc chọn nhiều trang liên tiếp — hệ thống sẽ gộp vào một bài.</span>
         </div>
 
         <Turnstile onToken={setToken} />
       </div>
 
+      <input ref={cameraRef} type="file" accept="image/*" capture="environment" hidden
+        onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
       <input ref={galleryRef} type="file" accept="image/*" multiple hidden
         onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
 

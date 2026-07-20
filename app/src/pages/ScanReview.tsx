@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkBadges } from '../lib/gamification';
 import { createLesson, nextLessonNumber } from '../lib/lessons';
@@ -10,10 +10,13 @@ export default function ScanReview() {
   const [lessonNo, setLessonNo] = useState(0);
   const [zoom, setZoom] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Đánh dấu đã lưu thành công để chặn effect bên dưới điều hướng nhầm về /scan
+  // khi clear() làm words rỗng ngay trước lúc chuyển sang trang bài học.
+  const savedRef = useRef(false);
 
   useEffect(() => { nextLessonNumber().then(setLessonNo); }, []);
   useEffect(() => {
-    if (!words.length) navigate('/scan', { replace: true });
+    if (!words.length && !savedRef.current) navigate('/scan', { replace: true });
   }, [words.length, navigate]);
 
   const lowCount = words.filter((w) => w.confidence < CONFIDENCE_THRESHOLD && !w.touched).length;
@@ -26,8 +29,9 @@ export default function ScanReview() {
     const title = `Bài ${lessonNo} · ${firstHanzi.length <= 8 ? firstHanzi : firstHanzi.slice(0, 8) + '…'}`;
     const id = await createLesson(title, validWords, source);
     await checkBadges(); // "Bài đầu tiên"
-    clear();
+    savedRef.current = true;
     navigate(`/lesson/${id}`, { replace: true });
+    clear();
   };
 
   return (
