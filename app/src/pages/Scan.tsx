@@ -20,6 +20,7 @@ export default function Scan() {
   const galleryRef = useRef<HTMLInputElement>(null);
 
   const [cameraOn, setCameraOn] = useState(false);
+  const [cameraError, setCameraError] = useState('');
   const [torch, setTorch] = useState(false);
   const [pages, setPages] = useState<string[]>([]);
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -27,11 +28,18 @@ export default function Scan() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [token, setToken] = useState('');
+  const [cameraAttempt, setCameraAttempt] = useState(0);
 
-  // Bật camera
+  // Bật camera — chạy lại mỗi khi bấm "Thử lại" (cameraAttempt tăng)
   useEffect(() => {
     let cancelled = false;
+    setCameraError('');
     (async () => {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraOn(false);
+        setCameraError('Trình duyệt này không hỗ trợ mở camera trực tiếp. Dùng "Thư viện ảnh" để chọn ảnh đã chụp sẵn.');
+        return;
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: 'environment', width: { ideal: 1920 } },
@@ -45,15 +53,26 @@ export default function Scan() {
           await videoRef.current.play().catch(() => {});
         }
         setCameraOn(true);
-      } catch {
-        setCameraOn(false); // không có quyền/không hỗ trợ → dùng upload
+      } catch (err) {
+        if (cancelled) return;
+        setCameraOn(false);
+        const name = err instanceof DOMException ? err.name : '';
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+          setCameraError('Bạn chưa cho phép quyền Camera. Mở cài đặt trình duyệt → quyền của trang này → bật Camera, rồi bấm "Thử lại". Hoặc dùng "Thư viện ảnh" bên dưới.');
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          setCameraError('Không tìm thấy camera trên thiết bị này. Dùng "Thư viện ảnh" để chọn ảnh đã chụp sẵn.');
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          setCameraError('Camera đang được ứng dụng khác dùng. Đóng ứng dụng đó rồi bấm "Thử lại", hoặc dùng "Thư viện ảnh".');
+        } else {
+          setCameraError('Không mở được camera trên thiết bị/trình duyệt này. Dùng "Thư viện ảnh" để chọn ảnh đã chụp sẵn.');
+        }
       }
     })();
     return () => {
       cancelled = true;
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [cameraAttempt]);
 
   const toggleTorch = async () => {
     const track = trackRef.current;
@@ -128,8 +147,17 @@ export default function Scan() {
             {cameraOn ? (
               <video ref={videoRef} playsInline muted />
             ) : (
-              <div className="center" style={{ color: '#8b98b3', fontFamily: 'monospace', fontSize: 14, lineHeight: 1.8 }}>
-                camera không khả dụng<br />hãy dùng “Chọn ảnh từ thư viện”
+              <div className="center stack gap-3" style={{ color: '#c3cbdc', padding: '0 20px', alignItems: 'center' }}>
+                <span style={{ fontSize: 30 }}>📵</span>
+                <span style={{ fontSize: 14, lineHeight: 1.6, fontWeight: 600 }}>
+                  {cameraError || 'Đang mở camera…'}
+                </span>
+                {cameraError && (
+                  <button className="btn btn-white" style={{ padding: '9px 18px', marginTop: 4 }}
+                    onClick={() => setCameraAttempt((n) => n + 1)}>
+                    ↻ Thử lại
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -138,8 +166,10 @@ export default function Scan() {
             display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 44, zIndex: 3,
           }}>
             <button className="icon-btn" style={{ fontSize: 24 }} onClick={() => galleryRef.current?.click()}>🖼️</button>
-            <button className="shutter" onClick={capture} disabled={!cameraOn}>📷</button>
-            <button className="icon-btn" style={{ fontSize: 24, opacity: torch ? 1 : 0.7 }} onClick={toggleTorch}>⚡</button>
+            {cameraOn && <button className="shutter" onClick={capture}>📷</button>}
+            {cameraOn && (
+              <button className="icon-btn" style={{ fontSize: 24, opacity: torch ? 1 : 0.7 }} onClick={toggleTorch}>⚡</button>
+            )}
           </div>
         </div>
 
