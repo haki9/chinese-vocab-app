@@ -5,9 +5,23 @@ export const OCR_URL: string = import.meta.env.VITE_OCR_URL ?? 'http://localhost
 export const TURNSTILE_SITE_KEY: string = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? '';
 
 export class OcrError extends Error {
-  constructor(public kind: 'network' | 'quota' | 'disabled' | 'server' | 'empty', message: string) {
+  constructor(
+    public kind: 'network' | 'quota' | 'disabled' | 'server' | 'empty' | 'not_chinese',
+    message: string,
+  ) {
     super(message);
   }
+}
+
+/** Nhận diện ký tự Nhật/Hàn trong kết quả — lớp kiểm tra dự phòng, độc lập với cờ is_chinese của AI */
+const HIRAGANA_KATAKANA = /[぀-ヿ]/;
+const HANGUL = /[가-힣]/;
+
+function detectForeignScript(words: OcrWord[]): string | null {
+  const combined = words.map((w) => w.hanzi + w.meaning).join('');
+  if (HIRAGANA_KATAKANA.test(combined)) return 'tiếng Nhật (có chữ hiragana/katakana)';
+  if (HANGUL.test(combined)) return 'tiếng Hàn (chữ Hangul)';
+  return null;
 }
 
 export async function requestOcr(imagesBase64: string[], turnstileToken: string): Promise<OcrWord[]> {
@@ -30,9 +44,22 @@ export async function requestOcr(imagesBase64: string[], turnstileToken: string)
   if (!res.ok) {
     throw new OcrError('server', 'Máy chủ gặp lỗi. Thử lại sau ít phút.');
   }
-  const data = (await res.json()) as { words: OcrWord[] };
+  const data = (await res.json()) as { words: OcrWord[]; isChinese?: boolean; note?: string };
+
+  if (data.isChinese === false) {
+    throw new OcrError(
+      'not_chinese',
+      data.note
+        ? `Ảnh này có vẻ không phải từ vựng tiếng Trung — ${data.note}. Hãy chụp trang vở ghi từ vựng tiếng Trung (chữ Hán) nhé.`
+        : 'Ảnh này có vẻ không phải nội dung tiếng Trung. Hãy chụp trang vở ghi từ vựng tiếng Trung (chữ Hán) nhé.',
+    );
+  }
   if (!data.words?.length) {
     throw new OcrError('empty', 'Không đọc được từ nào — ảnh có thể bị mờ hoặc thiếu sáng. Chụp lại gần hơn, đủ sáng nhé.');
+  }
+  const foreign = detectForeignScript(data.words);
+  if (foreign) {
+    throw new OcrError('not_chinese', `Ảnh này có vẻ là ${foreign}, không phải tiếng Trung. Hãy chụp trang vở ghi từ vựng tiếng Trung (chữ Hán) nhé.`);
   }
   return data.words;
 }

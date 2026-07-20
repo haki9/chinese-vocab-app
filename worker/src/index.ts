@@ -16,7 +16,11 @@ const MAX_IMAGE_BYTES = 1_500_000; // ~1.5MB base64 mỗi ảnh (đã nén clien
 const PROMPT_OCR = `Ảnh đính kèm là trang vở của một người Việt tự học tiếng Trung, ghi bảng từ vựng viết tay.
 Mỗi dòng thường gồm: chữ Hán (giản thể), pinyin (có dấu thanh), và nghĩa tiếng Việt.
 
-Hãy trích xuất TẤT CẢ các từ vựng đọc được, theo đúng thứ tự trên trang. Nếu có nhiều ảnh, gộp tất cả thành một danh sách liên tục.
+BƯỚC 1 — Kiểm tra ngôn ngữ: Trước khi trích xuất, xác định trang có thực sự ghi từ vựng TIẾNG TRUNG (chữ Hán) hay không.
+- Nếu trang KHÔNG phải tiếng Trung — ví dụ: tiếng Nhật (có hiragana/katakana), tiếng Hàn (chữ Hangul), chỉ có tiếng Anh/Việt, bài tập môn khác, trang trắng, hoặc ảnh không phải trang vở — đặt "is_chinese": false, "words": [], và "note" mô tả ngắn gọn bằng tiếng Việt bạn thấy gì (ví dụ: "Trang ghi bằng tiếng Nhật, có chữ hiragana/katakana" hoặc "Đây là bài tập toán, không có từ vựng tiếng Trung").
+- Nếu trang đúng là từ vựng tiếng Trung, đặt "is_chinese": true, "note": "", rồi tiếp tục BƯỚC 2.
+
+BƯỚC 2 — Trích xuất (chỉ khi is_chinese = true): Trích xuất TẤT CẢ các từ vựng đọc được, theo đúng thứ tự trên trang. Nếu có nhiều ảnh, gộp tất cả thành một danh sách liên tục.
 
 Quy tắc:
 - "hanzi": chữ Hán giản thể. Nếu người viết dùng phồn thể thì giữ nguyên như họ viết.
@@ -29,7 +33,7 @@ Quy tắc:
 const OCR_SCHEMA = {
   type: 'object',
   additionalProperties: false,
-  required: ['words'],
+  required: ['words', 'is_chinese', 'note'],
   properties: {
     words: {
       type: 'array',
@@ -45,6 +49,8 @@ const OCR_SCHEMA = {
         },
       },
     },
+    is_chinese: { type: 'boolean' },
+    note: { type: 'string' },
   },
 } as const;
 
@@ -160,14 +166,16 @@ export default {
       });
 
       if (response.stop_reason === 'refusal') {
-        return json({ error: 'refused', words: [] }, 200, cors);
+        return json({ error: 'refused', words: [], isChinese: true, note: '' }, 200, cors);
       }
 
       const text = response.content.find((b) => b.type === 'text');
-      if (!text || text.type !== 'text') return json({ words: [] }, 200, cors);
+      if (!text || text.type !== 'text') return json({ words: [], isChinese: true, note: '' }, 200, cors);
 
       const parsed = JSON.parse(text.text) as {
         words: { hanzi: string; pinyin: string; meaning: string; confidence: number }[];
+        is_chinese?: boolean;
+        note?: string;
       };
       const words = (parsed.words ?? [])
         .filter((w) => w.hanzi?.trim())
@@ -177,8 +185,10 @@ export default {
           meaning: String(w.meaning ?? '').trim(),
           confidence: Math.max(0, Math.min(1, Number(w.confidence) || 0)),
         }));
+      const isChinese = parsed.is_chinese !== false;
+      const note = String(parsed.note ?? '').trim();
 
-      return json({ words }, 200, cors);
+      return json({ words, isChinese, note }, 200, cors);
     } catch (e) {
       console.error('anthropic error', e instanceof Error ? e.message : e);
       return json({ error: 'upstream' }, 502, cors);
