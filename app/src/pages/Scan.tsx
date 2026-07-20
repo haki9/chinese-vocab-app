@@ -15,7 +15,9 @@ export default function Scan() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  // Không có `capture` — mở bộ chọn ảnh gốc của máy (Thư viện ảnh / Files), không ép mở camera.
+  // Trên nhiều điện thoại, input có `capture` sẽ luôn mở thẳng app camera và bỏ qua thư viện ảnh.
+  const galleryRef = useRef<HTMLInputElement>(null);
 
   const [cameraOn, setCameraOn] = useState(false);
   const [torch, setTorch] = useState(false);
@@ -127,7 +129,7 @@ export default function Scan() {
               <video ref={videoRef} playsInline muted />
             ) : (
               <div className="center" style={{ color: '#8b98b3', fontFamily: 'monospace', fontSize: 14, lineHeight: 1.8 }}>
-                camera không khả dụng<br />hãy dùng “Tải ảnh lên”
+                camera không khả dụng<br />hãy dùng “Chọn ảnh từ thư viện”
               </div>
             )}
           </div>
@@ -135,7 +137,7 @@ export default function Scan() {
             position: 'absolute', bottom: 26, left: 0, right: 0,
             display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 44, zIndex: 3,
           }}>
-            <button className="icon-btn" style={{ fontSize: 24 }} onClick={() => fileRef.current?.click()}>🖼️</button>
+            <button className="icon-btn" style={{ fontSize: 24 }} onClick={() => galleryRef.current?.click()}>🖼️</button>
             <button className="shutter" onClick={capture} disabled={!cameraOn}>📷</button>
             <button className="icon-btn" style={{ fontSize: 24, opacity: torch ? 1 : 0.7 }} onClick={toggleTorch}>⚡</button>
           </div>
@@ -167,8 +169,8 @@ export default function Scan() {
         )}
 
         <div className="scan-actions">
-          <button className="scan-action" onClick={() => fileRef.current?.click()}>
-            <span className="ico">🖼️</span>Tải ảnh lên
+          <button className="scan-action" onClick={() => galleryRef.current?.click()}>
+            <span className="ico">🖼️</span>Thư viện ảnh
           </button>
           <button className="scan-action" onClick={() => setPasteOpen(true)}>
             <span className="ico">📋</span>Dán văn bản
@@ -186,7 +188,7 @@ export default function Scan() {
         <Turnstile onToken={setToken} />
       </div>
 
-      <input ref={fileRef} type="file" accept="image/*" capture="environment" multiple hidden
+      <input ref={galleryRef} type="file" accept="image/*" multiple hidden
         onChange={(e) => { onFiles(e.target.files); e.target.value = ''; }} />
 
       {pasteOpen && (
