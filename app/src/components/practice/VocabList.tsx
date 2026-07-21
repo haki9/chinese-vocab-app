@@ -12,14 +12,17 @@ interface Props {
   lesson: Lesson;
   lang: Lang;
   onOpenWord: (words: Word[], index: number) => void;
+  onRenamed?: (title: string) => void;
 }
 
 type Filter = 'all' | 'due' | 'starred';
 
-export default function VocabList({ lesson, lang, onOpenWord }: Props) {
+export default function VocabList({ lesson, lang, onOpenWord, onRenamed }: Props) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
+  const [renaming, setRenaming] = useState(false);
+  const [draft, setDraft] = useState('');
 
   const data = useLiveQuery(async () => {
     const words = await lessonWords(lesson.id);
@@ -52,6 +55,20 @@ export default function VocabList({ lesson, lang, onOpenWord }: Props) {
     db.words.update(w.id, { starred: !w.starred, updatedAt: Date.now() });
   };
 
+  const startRename = () => {
+    setDraft(hanziPart || lesson.title);
+    setRenaming(true);
+  };
+
+  const saveRename = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed) { setRenaming(false); return; }
+    const title = numPart ? `${numPart} · ${trimmed}` : trimmed;
+    await db.lessons.update(lesson.id, { title, updatedAt: Date.now() });
+    onRenamed?.(title);
+    setRenaming(false);
+  };
+
   const playAll = () => {
     speakSequence(filtered.map((w) => w.hanzi), lang);
   };
@@ -66,7 +83,12 @@ export default function VocabList({ lesson, lang, onOpenWord }: Props) {
           </button>
           <span className="row gap-2" style={{ fontWeight: 700, fontSize: 14 }}>📖 Từ vựng</span>
         </div>
-        <h1 className="h1 mt-3" style={{ fontSize: 26 }}>{hanziPart}</h1>
+        <div className="row gap-2 mt-3" style={{ alignItems: 'center' }}>
+          <h1 className="h1" style={{ fontSize: 26 }}>{hanziPart}</h1>
+          <button className="icon-btn" style={{ color: '#d7e2f7' }} onClick={startRename} aria-label="Đổi tên danh sách">
+            ✏️
+          </button>
+        </div>
         <div className="hero-stats mt-4">
           <div className="hero-stat">
             <div className="v">{words.length}</div>
@@ -150,6 +172,26 @@ export default function VocabList({ lesson, lang, onOpenWord }: Props) {
           Luyện {filtered.length} từ này →
         </button>
       </div>
+
+      {renaming && (
+        <div className="modal-backdrop" onClick={() => setRenaming(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="h2">Đổi tên danh sách</div>
+            <input
+              className="text-input mt-4"
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') saveRename(); }}
+              maxLength={80}
+              autoFocus
+            />
+            <div className="row gap-3 mt-4">
+              <button className="btn btn-outline grow" onClick={() => setRenaming(false)}>Hủy</button>
+              <button className="btn btn-primary grow" disabled={!draft.trim()} onClick={saveRename}>Lưu</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

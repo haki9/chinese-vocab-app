@@ -208,7 +208,8 @@ export default function Practice() {
 
       {showVocabList && lesson && (
         <VocabList lesson={lesson} lang={lang}
-          onOpenWord={(ws, i) => { setVocabWords(ws); setVocabStart(i); setVocabView('browse'); }} />
+          onOpenWord={(ws, i) => { setVocabWords(ws); setVocabStart(i); setVocabView('browse'); }}
+          onRenamed={(title) => setLesson((l) => (l ? { ...l, title } : l))} />
       )}
 
       {showVocabBrowse && id && (
