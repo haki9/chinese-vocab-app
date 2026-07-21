@@ -84,6 +84,14 @@ export function stateMastery(s: SkillState | undefined): number {
   return Math.min(100, Math.round((s.intervalDays / MASTERY_DAYS) * 100));
 }
 
+/** "hôm nay" / "ngày mai" / "N ngày nữa" — dùng cho dòng "lịch ôn tiếp theo" ở màn chi tiết từ (5b) */
+export function formatDueDate(dueAt: number, now = Date.now()): string {
+  if (dueAt <= now) return 'hôm nay';
+  const days = Math.ceil((dueAt - now) / DAY);
+  if (days === 1) return 'ngày mai';
+  return `${days} ngày nữa`;
+}
+
 export interface LessonMastery {
   recognize: number;
   pinyin: number;

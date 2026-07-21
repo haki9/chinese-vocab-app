@@ -97,3 +97,19 @@ export interface OcrWord {
   meaning: string;
   confidence: number; // 0-1
 }
+
+/** Một cụm chữ hoặc câu ví dụ: chữ gốc + cách đọc + nghĩa Việt (dùng chung cho từ ghép lẫn mẫu câu) */
+export interface Phrase {
+  text: string;
+  reading: string;
+  meaning: string;
+}
+
+/** Nội dung chi tiết 1 từ do AI sinh (màn 5b) — cache theo wordId, chỉ sinh 1 lần/từ/máy */
+export interface WordDetail {
+  wordId: string;
+  note: string;
+  combos: Phrase[];
+  sentences: Phrase[];
+  updatedAt: number;
+}

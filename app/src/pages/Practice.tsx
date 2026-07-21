@@ -192,13 +192,13 @@ export default function Practice() {
     : Math.round((idx / Math.max(1, queue.length)) * 100);
 
   const showVocabList = mode === 'vocab' && vocabView === 'list';
+  const showVocabBrowse = mode === 'vocab' && vocabView === 'browse';
 
   return (
     <>
-      {!showVocabList && (
+      {!showVocabList && !showVocabBrowse && (
         <div className="practice-top">
-          <button className="icon-btn"
-            onClick={() => (mode === 'vocab' ? setVocabView('list') : navigate(`/lesson/${id}`))}>✕</button>
+          <button className="icon-btn" onClick={() => navigate(`/lesson/${id}`)}>✕</button>
           {progress !== null ? (
             <div className="bar"><i style={{ width: `${progress}%` }} /></div>
           ) : <div className="grow" />}
@@ -211,8 +211,9 @@ export default function Practice() {
           onOpenWord={(ws, i) => { setVocabWords(ws); setVocabStart(i); setVocabView('browse'); }} />
       )}
 
-      {mode === 'vocab' && vocabView === 'browse' && (
-        <VocabBrowser words={vocabWords} lang={lang} startIndex={vocabStart} onFinished={finishSession} />
+      {showVocabBrowse && id && (
+        <VocabBrowser words={vocabWords} lang={lang} startIndex={vocabStart} lessonId={id}
+          onExit={() => setVocabView('list')} onFinished={finishSession} />
       )}
 
       {mode === 'match' && (

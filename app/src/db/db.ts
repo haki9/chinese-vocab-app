@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import type { Lesson, Profile, ReviewLog, Settings, SkillState, Word } from './types';
+import type { Lesson, Profile, ReviewLog, Settings, SkillState, Word, WordDetail } from './types';
 
 class WigoDB extends Dexie {
   lessons!: Table<Lesson, string>;
@@ -8,6 +8,7 @@ class WigoDB extends Dexie {
   reviewLogs!: Table<ReviewLog, string>;
   profile!: Table<Profile, string>;
   settings!: Table<Settings, string>;
+  wordDetails!: Table<WordDetail, string>;
 
   constructor() {
     super('wigo');
@@ -18,6 +19,9 @@ class WigoDB extends Dexie {
       reviewLogs: 'id, at, wordId',
       profile: 'id',
       settings: 'id',
+    });
+    this.version(2).stores({
+      wordDetails: 'wordId',
     });
   }
 }

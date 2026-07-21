@@ -15,6 +15,10 @@ ALLOWED_ORIGIN = "https://haki9.github.io"
 IP_DAILY_LIMIT = "10"
 GLOBAL_DAILY_LIMIT = "300"
 OCR_DISABLED = "false"
+# Sinh "từ ghép hay dùng" + "mẫu câu" cho màn chi tiết từ (5b) — hạn mức riêng, không cần Turnstile
+WORD_DETAIL_IP_DAILY_LIMIT = "60"
+WORD_DETAIL_GLOBAL_DAILY_LIMIT = "2000"
+WORD_DETAIL_DISABLED = "false"
 
 # Secrets (KHÔNG ghi vào file này):
 #   wrangler secret put ANTHROPIC_API_KEY
