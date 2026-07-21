@@ -2,7 +2,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../db/db';
 import type { Lang } from '../lib/lang';
-import { lessonWords } from '../lib/lessons';
+import { lessonWords, splitLessonTitle } from '../lib/lessons';
 import { lessonMastery } from '../lib/srs';
 import type { PracticeMode, Skill } from '../db/types';
 
@@ -45,9 +45,7 @@ export default function Lesson() {
   const MODES = buildModes(lang);
   const SKILL_LABEL = skillLabel(lang);
   const pinyinTitle = words.slice(0, 5).map((w) => w.pinyin).join(' ');
-  const [numPart, hanziPart] = lesson.title.includes('·')
-    ? [lesson.title.split('·')[0].trim(), lesson.title.split('·').slice(1).join('·').trim()]
-    : ['', lesson.title];
+  const [numPart, hanziPart] = splitLessonTitle(lesson.title);
 
   const del = async () => {
     if (!confirm('Xóa bài học này? Tiến độ SRS của các từ trong bài cũng sẽ mất.')) return;

@@ -39,3 +39,21 @@ export function speak(text: string, rate = 0.9, lang: Lang = 'zh') {
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(u);
 }
+
+/** Đọc lần lượt nhiều đoạn text, chờ đoạn trước phát xong mới sang đoạn sau (dùng cho "Nghe tất cả") */
+export function speakSequence(texts: string[], lang: Lang = 'zh', rate = 0.9) {
+  if (!ttsAvailable(lang) || !texts.length) return;
+  window.speechSynthesis.cancel();
+  const voice = voices[lang]!;
+  let i = 0;
+  const playNext = () => {
+    if (i >= texts.length) return;
+    const u = new SpeechSynthesisUtterance(texts[i++]);
+    u.voice = voice;
+    u.lang = BCP47[lang];
+    u.rate = rate;
+    u.onend = playNext;
+    window.speechSynthesis.speak(u);
+  };
+  playNext();
+}

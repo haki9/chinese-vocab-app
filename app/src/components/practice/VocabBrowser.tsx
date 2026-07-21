@@ -6,11 +6,12 @@ import { speak, ttsAvailable } from '../../lib/tts';
 interface Props {
   words: Word[];
   lang?: Lang;
+  startIndex?: number;
   onFinished: () => void;
 }
 
-export default function VocabBrowser({ words, lang = 'zh', onFinished }: Props) {
-  const [idx, setIdx] = useState(0);
+export default function VocabBrowser({ words, lang = 'zh', startIndex = 0, onFinished }: Props) {
+  const [idx, setIdx] = useState(startIndex);
   const w = words[idx];
   if (!w) return null;
   const tts = ttsAvailable(lang);

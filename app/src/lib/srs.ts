@@ -120,6 +120,25 @@ export async function lessonMastery(wordIds: string[]): Promise<LessonMastery> {
   };
 }
 
+export type WordStatus = 'new' | 'due' | 'known';
+
+/** Trạng thái nhận mặt chữ (skill 'recognize') từng từ — dùng cho chấm dot màu ở màn Từ vựng (5a) */
+export async function recognizeStatuses(
+  wordIds: string[],
+): Promise<Map<string, { status: WordStatus; wrongCount: number }>> {
+  const now = Date.now();
+  const states = await db.skillStates.bulkGet(wordIds.map((id) => skillStateId(id, 'recognize')));
+  const map = new Map<string, { status: WordStatus; wrongCount: number }>();
+  wordIds.forEach((wordId, i) => {
+    const s = states[i];
+    const wrongCount = s?.wrongCount ?? 0;
+    if (!s || s.repetitions === 0) map.set(wordId, { status: 'new', wrongCount });
+    else if (s.dueAt <= now) map.set(wordId, { status: 'due', wrongCount });
+    else map.set(wordId, { status: 'known', wrongCount });
+  });
+  return map;
+}
+
 /** Đếm từ đến hạn ôn toàn app, gom theo bài */
 export async function dueToday(): Promise<{ total: number; byLesson: Map<string, number> }> {
   const now = Date.now();

@@ -381,6 +381,63 @@ a { text-decoration: none; color: inherit; }
   line-height: 1.45;
 }
 
+/* ===== Từ vựng danh sách (5a) ===== */
+.hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.hero-stat { background: rgba(255, 255, 255, 0.16); border-radius: var(--radius); padding: 14px 6px; text-align: center; }
+.hero-stat .v { font-size: 22px; font-weight: 800; }
+.hero-stat .l { font-size: 12px; font-weight: 600; color: #d7e2f7; margin-top: 2px; }
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 2px solid #d6e0f0;
+  border-radius: var(--radius);
+  padding: 0 14px;
+}
+.search-box input { border: none; background: transparent; padding: 12px 0; font-size: 15px; width: 100%; }
+.search-box input:focus { outline: none; }
+
+.filter-row { display: flex; gap: 8px; overflow-x: auto; }
+.filter-chip {
+  background: #fff;
+  border: 1.5px solid #d6e0f0;
+  color: var(--text-2);
+  font-weight: 700;
+  font-size: 13.5px;
+  border-radius: 999px;
+  padding: 9px 16px;
+  white-space: nowrap;
+}
+.filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.vocab-row {
+  background: #fff;
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+}
+.vocab-row.due { border-color: var(--orange); }
+.vocab-row .hz { font-size: 26px; font-weight: 700; min-width: 58px; }
+.vocab-row .info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.vocab-row .py { color: var(--primary); font-weight: 700; font-size: 15.5px; }
+.vocab-row .mn { color: var(--text-2); font-size: 14px; margin-top: 1px; }
+.vocab-row .warn { color: var(--orange-deep); font-size: 12px; font-weight: 600; margin-top: 3px; }
+.vocab-row .actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.status-dot.known { background: var(--green); }
+.status-dot.due { background: var(--orange-deep); }
+.status-dot.new { background: #d3dceb; }
+.star-btn { font-size: 19px; color: #d3dceb; line-height: 1; }
+.star-btn.on { color: var(--orange-deep); }
+
 /* ===== Flashcard ===== */
 .flashcard {
   perspective: 1000px;

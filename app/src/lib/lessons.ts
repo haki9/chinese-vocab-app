@@ -76,6 +76,13 @@ export async function lessonWords(lessonId: string): Promise<Word[]> {
   return ws.filter((w) => !w.deletedAt).sort((a, b) => a.order - b.order);
 }
 
+/** Tách "Bài 7 · 明天你有课吗?" -> ['Bài 7', '明天你有课吗?'] (không có '·' -> ['', title]) */
+export function splitLessonTitle(title: string): [string, string] {
+  if (!title.includes('·')) return ['', title];
+  const [num, ...rest] = title.split('·');
+  return [num.trim(), rest.join('·').trim()];
+}
+
 export function relativeTime(ts: number): string {
   const days = Math.floor((Date.now() - ts) / 86400000);
   if (days <= 0) return 'hôm nay';

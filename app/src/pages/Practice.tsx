@@ -5,10 +5,11 @@ import MatchBoard from '../components/practice/MatchBoard';
 import QuizQuestion from '../components/practice/QuizQuestion';
 import TypingQuestion from '../components/practice/TypingQuestion';
 import VocabBrowser from '../components/practice/VocabBrowser';
+import VocabList from '../components/practice/VocabList';
 import WritingQuestion from '../components/practice/WritingQuestion';
 import CelebrateModal from '../components/CelebrateModal';
 import { db } from '../db/db';
-import type { PracticeMode, Word } from '../db/types';
+import type { Lesson, PracticeMode, Word } from '../db/types';
 import type { Lang } from '../lib/lang';
 import {
   confettiBig, confettiBurst, playCorrect, playLevelUp, playSessionDone, playWrong,
@@ -46,6 +47,10 @@ export default function Practice() {
 
   const [words, setWords] = useState<Word[] | null>(null);
   const [lang, setLang] = useState<Lang>('zh');
+  const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [vocabView, setVocabView] = useState<'list' | 'browse'>('list');
+  const [vocabWords, setVocabWords] = useState<Word[]>([]);
+  const [vocabStart, setVocabStart] = useState(0);
   const [queue, setQueue] = useState<Question[]>([]);
   const [idx, setIdx] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -61,8 +66,10 @@ export default function Practice() {
   useEffect(() => {
     (async () => {
       if (!id || !mode) return;
-      const lesson = await db.lessons.get(id);
-      setLang(lesson?.lang ?? 'zh');
+      const l = await db.lessons.get(id);
+      setLesson(l ?? null);
+      setLang(l?.lang ?? 'zh');
+      setVocabView('list');
       let ws = await lessonWords(id);
       if (!ws.length) { navigate(`/lesson/${id}`, { replace: true }); return; }
 
@@ -184,17 +191,29 @@ export default function Practice() {
     ? null
     : Math.round((idx / Math.max(1, queue.length)) * 100);
 
+  const showVocabList = mode === 'vocab' && vocabView === 'list';
+
   return (
     <>
-      <div className="practice-top">
-        <button className="icon-btn" onClick={() => navigate(`/lesson/${id}`)}>✕</button>
-        {progress !== null ? (
-          <div className="bar"><i style={{ width: `${progress}%` }} /></div>
-        ) : <div className="grow" />}
-        <span style={{ fontWeight: 800, color: 'var(--orange-deep)' }}>🔥 {streak}</span>
-      </div>
+      {!showVocabList && (
+        <div className="practice-top">
+          <button className="icon-btn"
+            onClick={() => (mode === 'vocab' ? setVocabView('list') : navigate(`/lesson/${id}`))}>✕</button>
+          {progress !== null ? (
+            <div className="bar"><i style={{ width: `${progress}%` }} /></div>
+          ) : <div className="grow" />}
+          <span style={{ fontWeight: 800, color: 'var(--orange-deep)' }}>🔥 {streak}</span>
+        </div>
+      )}
 
-      {mode === 'vocab' && <VocabBrowser words={words} lang={lang} onFinished={finishSession} />}
+      {showVocabList && lesson && (
+        <VocabList lesson={lesson} lang={lang}
+          onOpenWord={(ws, i) => { setVocabWords(ws); setVocabStart(i); setVocabView('browse'); }} />
+      )}
+
+      {mode === 'vocab' && vocabView === 'browse' && (
+        <VocabBrowser words={vocabWords} lang={lang} startIndex={vocabStart} onFinished={finishSession} />
+      )}
 
       {mode === 'match' && (
         <MatchBoard words={words} lang={lang} onWordResult={reportMatchWord} onFinished={finishSession} />

@@ -37,6 +37,8 @@ export interface Word {
   pinyin: string;
   meaning: string;
   order: number;
+  /** Đánh dấu ở màn Từ vựng (5a) — lọc theo "Đã đánh dấu" */
+  starred?: boolean;
   createdAt: number;
   updatedAt: number;
   deletedAt?: number;
